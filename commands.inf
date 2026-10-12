@@ -1,0 +1,6 @@
+python serverSocket.py
+fastapi run ./Environment/EnvironmentCreator.py --host 0.0.0.0 --port 8000
+python GroundStation/CommandCLI.py  
+
+
+ps aux | grep python | grep fork | awk -F' ' '{print $2}' | xargs kill -9

@@ -1,0 +1,7 @@
+pip install requests
+pip install tinydb
+pip install scipy
+pip install matplotlib
+pip install shapely
+pip install "fastapi[standard]"
+

@@ -1,0 +1,1 @@
+{"scenario":{"count":10,"ID":10,"type":"drone","lat":36.54,"lon":54.35,"alt":1},"waypoints":[{"timeout":120,"lat":36.545,"lon":54.355,"alt":1.005},{"timeout":240,"lat":36.56,"lon":54.355,"alt":1.01},{"timeout":360,"lat":36.56,"lon":54.365,"alt":1.01,"behave":2}]}

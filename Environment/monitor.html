@@ -1,0 +1,385 @@
+<html>
+    <head>
+        <meta http-equiv="Content-Language" content="fa">
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <link rel="stylesheet" href="./resources/leaflet.css" />
+        <script type="text/javascript" src="./resources/leaflet.js" ></script>
+        <script type="text/javascript" src="./resources/MovingMarker.js"></script>
+        <style>
+            * {
+                font-family: Tahoma;
+                font-size: 12pt;
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div name="map" id="map" 
+            style="width: calc( 100% - 2px ); height: calc( 100% - 2px );display: inline-block;
+            border-radius: 5px; border-width: 1px; border-color: rgb(128, 86, 167); 
+            border-style: solid; "></div>
+        <div name="objectinfo" id="objectinfo" 
+            style="width: calc( 40% - 2px - 0.2rem ); height: 100%;display: none; 
+            float: inline-end; margin-left: 0.2rem;">
+            <div style="width: calc( 100% - 2px ); height: 2rem;overflow-y: auto;text-wrap: initial;
+                border-radius: 5px; border-width: 1px; border-color: rgb(128, 86, 167); 
+                border-style: solid; background-color: rgb(168, 125, 208);
+                text-align: center; color: rgb(248, 251, 254);
+                padding-top: 1rem;">Decisions</div>
+            <div name="decisions" id="decisions" 
+                style="width: calc( 100% - 0.8rem - 2px ); 
+                height: calc( 50% - 4.2rem - 4px );
+                overflow-y: auto;text-wrap: initial;
+                margin-top: 0.2rem; direction: rtl; text-align: right;
+                border-radius: 5px; border-width: 1px; border-color: blueviolet; 
+                border-style: solid; padding: 0.4rem">No Data</div>
+            <div style="width: calc( 100% - 2px ); height: 2rem;overflow-y: auto;text-wrap: initial;
+                border-radius: 5px; border-width: 1px; border-color:rgb(117, 50, 50); 
+                border-style: solid; background-color: rgb(180, 96, 96);
+                margin-top: 0.2rem; text-align: center; 
+                color: rgb(253, 246, 246); padding-top: 1rem;">Environmental View</div>
+            <div name="receivedObjects" id="receivedObjects" 
+                style="width: calc( 100% - 2px - 0.8rem ); 
+                height: calc( 50% - 4.6rem - 4px );overflow-y: auto;text-wrap: initial;
+                margin-top: 0.2rem; direction: rtl; text-align: right;
+                border-radius: 5px; border-width: 1px; border-color: rgb(117, 50, 50); 
+                border-style: solid; padding: 0.4rem;">No Data</div>
+        </div>
+    </body>
+    <script type="">
+
+        var xhttp = new XMLHttpRequest();
+        xhttp.overrideMimeType("application/json");
+
+        var selectedID = -1;
+        var getObjectInfoHanle = -1;
+        var points = {};
+        var objects = {};
+        var environmentalView = {};
+        var renderIsInProgress = 0;
+
+        var getObjectInfo = () => {
+            if (typeof objects[selectedID] != 'undefined') {
+                xhttp.open("GET", config['agent']['DeploymentAddress']['schema']+'://'+config['agent']['DeploymentAddress']['address']+':'+(config['agent']['ServicePortOffset']+selectedID)+'/RecentDecisions', false);
+                xhttp.setRequestHeader('Accept', 'application/json');
+                xhttp.setRequestHeader('Content-Type', 'application/json');
+                xhttp.send();
+
+                let decisionsList = JSON.parse(xhttp.responseText);
+
+                for ( const decision of decisionsList) {
+                    let text = '<div style="width: calc( 100% - 2px ); border-radius: 5px; border-width: 1px; border-color: rgb(128, 86, 167); border-style: solid; margin-bottom: 0.1rem; background-color: rgb(248, 251, 254);">';
+                    if (decision['status'] == 'OUTOFFORM')
+                        text += '<div style="display: inline-block; flow: inline-end; min-width: 30%">'+
+                                'وضعیت خارج از محدوده'
+                                +'</div>';
+                    else if (decision['status'] == 'MISSIONCOMPLETE')
+                        text += '<div style="display: inline-block; flow: inline-end; min-width: 30%">'+
+                                'وضعیت تکمیل ماموریت'
+                                +'</div>';
+                    else if (decision['status'] == 'STRAIGHTTOTARGET')
+                        text += '<div style="display: inline-block; flow: inline-end; min-width: 30%">'+
+                                'وضعیت به سمت هدف'
+                                +'</div>';
+                    else if (decision['status'] == 'VERYCLOSE')
+                        text += '<div style="display: inline-block; flow: inline-end; min-width: 30%">'+
+                                'وضعیت تزاحم'
+                                +'</div>';
+                    else if (decision['status'] == 'VERYFAR')
+                        text += '<div style="display: inline-block; flow: inline-end; min-width: 30%">'+
+                                'وضعیت دورافتاده'
+                                +'</div>';
+                    text += '<div style="display: inline-block; flow: inline-end; min-width: 15%">'+
+                            'در ' + decision['__timestamp__'].split(' ')[1]
+                            +'</div>';
+
+                    if (decision['status'] == 'MISSIONCOMPLETE') {
+
+                    }
+                    else if (decision['status'] == 'STRAIGHTTOTARGET') {
+                        text += '<div style="display: inline-block; flow: inline-end; min-width: 40%">'+
+                                'به سمت ' + (decision['goto']['lat']+'').substr(0,7) + ' ' + (decision['goto']['lon']+'').substr(0,7) + ' ' + (decision['goto']['alt']+'').substr(0,7) + ' '
+                                +'</div>';
+                    }
+                    else {
+                        text += '<div style="display: inline-block; flow: inline-end; min-width: 15%">'+
+                                'با سرعت ' + parseInt(decision['maneuver']['speed'])
+                                +'</div>';
+                        text += '<div style="display: inline-block; flow: inline-end; min-width: 30%">'+
+                                'در جهت ' + parseInt(decision['maneuver']['alpha']) + ' ' + parseInt(decision['maneuver']['beta']) + ' ' + parseInt(decision['maneuver']['gamma'])
+                                +'</div>';
+                    }
+
+                    if (typeof decision['conditions'] != 'undefined') {
+                        text += '<div style="display: inline-block; flow: inline-end; min-width: 30%">'+
+                                'دلایل تصمیم: ' 
+                                +'</div>';
+                        text += '<div style="display: inline-block; flow: inline-end; min-width: 30%">'+
+                                'عدم همبستگی ' + decision['conditions']['OutOfForm'].toFixed(2)
+                                +'</div>';
+                        text += '<div style="display: inline-block; flow: inline-end; min-width: 30%">'+
+                                'جمع شدگی ' + decision['conditions']['OutOfFormClose'].toFixed(2)
+                                +'</div>';
+                        text += '<div style="display: inline-block; flow: inline-end; min-width: 30%">'+
+                                'ازدحام ' + decision['conditions']['VeryClose'].toFixed(2)
+                                +'</div>';
+                        text += '<div style="display: inline-block; flow: inline-end; min-width: 30%">'+
+                                'دور افتادگی ' + decision['conditions']['VeryFar'].toFixed(2)
+                                +'</div>';
+                        text += '<div style="display: inline-block; flow: inline-end; min-width: 30%">'+
+                                'احتمال شکست ' + decision['conditions']['MissionFailure'].toFixed(2)
+                                +'</div>';
+                    }
+
+                    text += '</div>';
+
+                    document.getElementById("decisions").innerHTML = text + document.getElementById("decisions").innerHTML;
+
+                    while (document.getElementById("decisions").childElementCount > 100)
+                    {
+                        document.getElementById("decisions").children[100].remove();
+                    }
+                }
+
+                if (typeof environmentalView[selectedID] == 'undefined')
+                    environmentalView[selectedID] = {};
+
+                xhttp.open("GET", config['agent']['DeploymentAddress']['schema']+'://'+config['agent']['DeploymentAddress']['address']+':'+(config['agent']['ServicePortOffset']+selectedID)+'/RecentObjects', false);
+                xhttp.setRequestHeader('Accept', 'application/json');
+                xhttp.setRequestHeader('Content-Type', 'application/json');
+                xhttp.send();
+                let objectStateList = JSON.parse(xhttp.responseText);
+
+                let finalObjectList = environmentalView[selectedID];
+
+                for ( const objectState of objectStateList) {
+                    if (objectState != 'undefined') {
+                        if (typeof objectState['ID'] == 'undefined')
+                            objectState['ID'] = objectState['object_id'];
+                        if (typeof objectState['object_id'] == 'undefined')
+                            objectState['object_id'] = objectState['ID'];
+
+                        if (typeof finalObjectList[objectState['object_id']] != 'undefined')
+                        {
+                            if (objectState['__timestamp__'] > finalObjectList[objectState['object_id']]['__timestamp__'])
+                                finalObjectList[objectState['object_id']] = objectState
+                        }
+                        else 
+                            finalObjectList[objectState['object_id']] = objectState
+                    }
+                }
+
+                environmentalView[selectedID] = finalObjectList;
+
+                document.getElementById("receivedObjects").innerHTML = '';
+                for (const [key, objectState] of Object.entries(finalObjectList)) {
+                    if (objectState != 'undefined') {
+                        let text = '';
+                        if (typeof objectState['Cooperation'] != 'undefined' && objectState['Cooperation'] == 1)
+                            text = '<div style="width: calc( 100% - 2px ); border-radius: 5px; border-width: 1px; border-color: rgb(128, 86, 167); border-style: solid; margin-bottom: 0.1rem; background-color: rgb(248, 251, 254);">';
+                        else
+                            text = '<div style="width: calc( 100% - 2px ); border-radius: 5px; border-width: 1px; border-color: rgb(128, 86, 167); border-style: solid; margin-bottom: 0.1rem; background-color: rgb(253, 246, 246);">';
+                        text += '<div style="display: inline-block; flow: inline-end; min-width: 30%; font-weight: bold">'+
+                                'موجودیتی با شناسه ' + objectState['object_id']
+                                +'</div>';
+                        text += '<div style="display: inline-block; flow: inline-end; min-width: 40%">'+
+                                'در موقعیت ' + (objectState['location']['lat']+'').substr(0,7) + ' ' + (objectState['location']['lon']+'').substr(0,7) + ' ' + (objectState['location']['alt']+'').substr(0,7) + ' '
+                                +'</div>';
+                        text += '<div style="display: inline-block; flow: inline-end; min-width: 15%">'+
+                                'در ' + objectState['__timestamp__'].split(' ')[1]
+                                +'</div>';
+
+                        text += '<div style="display: inline-block; flow: inline-end; min-width: 20%">'+
+                                'با سرعت ' + parseInt(objectState['velocity']['speed'])
+                                +'</div>';
+                        text += '<div style="display: inline-block; flow: inline-end; min-width: 30%">'+
+                                'در جهت ' + parseInt(objectState['velocity']['direction']['alpha']) + ' ' + parseInt(objectState['velocity']['direction']['beta']) + ' ' + parseInt(objectState['velocity']['direction']['gamma'])
+                                +'</div>';
+
+                        text += '</div>';
+
+                        document.getElementById("receivedObjects").innerHTML += text;
+                    }
+
+                }
+            }
+        }
+
+        var friendIcon = L.icon({
+            iconUrl: './resources/images/pin-friend.png',
+            shadowUrl: './resources/images/marker-shadow.png',
+
+            iconSize:     [40, 40], // size of the icon
+            shadowSize:   [60, 60], // size of the shadow
+            iconAnchor:   [0, 0], // point of the icon which will correspond to marker's location
+            shadowAnchor: [0, 25],  // the same for the shadow
+            popupAnchor:  [20, 0] // point from which the popup should open relative to the iconAnchor
+        });
+
+        var enemyIcon = L.icon({
+            iconUrl: './resources/images/pin-enemy.png',
+            shadowUrl: './resources/images/marker-shadow.png',
+
+            iconSize:     [40, 40], // size of the icon
+            shadowSize:   [60, 60], // size of the shadow
+            iconAnchor:   [0, 0], // point of the icon which will correspond to marker's location
+            shadowAnchor: [0, 25],  // the same for the shadow
+            popupAnchor:  [20, 0] // point from which the popup should open relative to the iconAnchor
+        });
+
+        var targetIcon = L.icon({
+            iconUrl: './resources/images/pin-target.png',
+            shadowUrl: './resources/images/marker-shadow.png',
+
+            iconSize:     [40, 40], // size of the icon
+            shadowSize:   [60, 60], // size of the shadow
+            iconAnchor:   [0, 0], // point of the icon which will correspond to marker's location
+            shadowAnchor: [0, 25],  // the same for the shadow
+            popupAnchor:  [20, 0] // point from which the popup should open relative to the iconAnchor
+        });
+
+        var neutralIcon = L.icon({
+            iconUrl: './resources/images/pin-neutral.png',
+            shadowUrl: './resources/images/marker-shadow.png',
+
+            iconSize:     [40, 40], // size of the icon
+            shadowSize:   [60, 60], // size of the shadow
+            iconAnchor:   [0, 0], // point of the icon which will correspond to marker's location
+            shadowAnchor: [0, 25],  // the same for the shadow
+            popupAnchor:  [20, 0] // point from which the popup should open relative to the iconAnchor
+        });
+
+        var grayIcon = L.icon({
+            iconUrl: './resources/images/pin-gray.png',
+            shadowUrl: './resources/images/marker-shadow.png',
+
+            iconSize:     [40, 40], // size of the icon
+            shadowSize:   [60, 60], // size of the shadow
+            iconAnchor:   [0, 0], // point of the icon which will correspond to marker's location
+            shadowAnchor: [0, 25],  // the same for the shadow
+            popupAnchor:  [20, 0] // point from which the popup should open relative to the iconAnchor
+        });
+
+
+        xhttp.open("GET", "../config.ini", false);
+        xhttp.setRequestHeader('Accept', 'application/json');
+        xhttp.setRequestHeader('Content-Type', 'application/json');
+        xhttp.send();
+        var config = JSON.parse(xhttp.responseText);
+
+        var map = L.map('map').setView([config['Extent']['center']['lat'], config['Extent']['center']['lon']], config['Extent']['zoomlevel']);
+        map.on('click', ()=>{
+            selectedID = -1;
+            document.getElementById("decisions").innerHTML = "";
+            document.getElementById("receivedObjects").innerHTML = "";
+            document.getElementById("objectinfo").style.display = "none";
+            document.getElementById("map").style.width = "calc( 100% - 2px )";
+            window.clearInterval(getObjectInfoHanle);
+            getObjectInfoHanle = -1;
+        });
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {}).addTo(map);
+
+        window.setInterval(() => {
+            xhttp.open("GET", config['environment']['server']['schema']+'://'+config['environment']['server']['address']+':'+config['environment']['server']['port']+'/environment', false);
+            xhttp.setRequestHeader('Accept', 'application/json');
+            xhttp.setRequestHeader('Content-Type', 'application/json');
+            xhttp.send();
+            let data = JSON.parse(xhttp.responseText);
+
+            if (typeof data['objects'] != 'undefined') {
+
+                renderPoints = () => {
+                    if (renderIsInProgress == 0) {
+                        data['objects'].forEach(element => {
+                            objects[element['object_id']] = element
+                            if (typeof points[element['object_id']] != 'undefined') {
+                                if (points[element['object_id']].getLatLng()[0] != element['location']['lat'] || points[element['object_id']].getLatLng()[1] != element['location']['lon']) {
+                                    ++renderIsInProgress;
+                                    map.removeLayer(points[element['object_id']]);
+                                    let mvMarker = L.Marker.movingMarker([points[element['object_id']].getLatLng(),[element['location']['lat'],element['location']['lon']]], config['MonitorSensitivity']*1000, {autostart: true, icon: points[element['object_id']].getIcon()}).on('click', ()=>{
+                                        selectedID = element['object_id'];
+                                        if (getObjectInfoHanle === -1)
+                                        {
+                                            document.getElementById("objectinfo").style.display = "inline-block";
+                                            document.getElementById("map").style.width = "calc( 60% - 2px )";
+                                            getObjectInfoHanle = window.setInterval(getObjectInfo, config['MonitorSensitivity']*1000);
+                                        }
+                                    });
+
+                                    let popupContent = '<span style="font-weight:bolder">ID: </span>'+element['object_id'];
+                                    popupContent += '<br/><span style="font-weight:bolder">LOC: </span>'+(element['location']['lat']+' ').substring(0,7)+'  '+(element['location']['lon']+' ').substring(0,7)+'  '+(element['location']['alt']+' ').substring(0,7);
+                                    popupContent += '<br/><span style="font-weight:bolder">Speed: </span>'+(element['velocity']['speed']+' ').substring(0,7);
+                                    popupContent += '<br/><span style="font-weight:bolder">Accel: </span>'+(element['velocity']['acceleration']+' ').substring(0,7);
+                                    popupContent += '<br/><span style="font-weight:bolder">Direction: </span>'+(element['velocity']['direction']['alpha']+' ').substring(0,7)+'  '+(element['velocity']['direction']['beta']+' ').substring(0,7)+'  '+(element['velocity']['direction']['gamma']+' ').substring(0,7);;
+
+                                    if (selectedID == element['object_id'])
+                                        mvMarker.addTo(map).bindPopup(popupContent).openPopup();
+                                    else
+                                        mvMarker.addTo(map).bindPopup(popupContent);
+                                    window.setTimeout(() => {
+                                        let lat = (element['location']['lat']);
+                                        let lon = (element['location']['lon']);
+                                        let newLatLng = new L.LatLng(lat, lon);
+                                        points[element['object_id']].setLatLng(newLatLng); 
+                                        points[element['object_id']].addTo(map);
+                                        map.removeLayer(mvMarker);
+                                        --renderIsInProgress;
+                                    }, config['MonitorSensitivity']*1000);
+                                }
+                            }
+                            else {
+                                let lat = (element['location']['lat']);
+                                let lon = (element['location']['lon']);
+                                let markerIcon = friendIcon;
+                                switch (element['party']) {
+                                    case 'friend':
+                                        markerIcon = friendIcon;
+                                        break;
+                                    case 'enemy':
+                                        markerIcon = enemyIcon;
+                                        break;
+                                    case 'gray':
+                                        markerIcon = grayIcon;
+                                        break;
+                                    case 'neutral':
+                                        markerIcon = neutralIcon;
+                                        break;
+                                }
+                                points[element['object_id']] = L.marker([lat, lon], {icon: markerIcon}).on('click', ()=>{
+                                    selectedID = element['object_id'];
+                                    if (getObjectInfoHanle === -1)
+                                    {
+                                        document.getElementById("objectinfo").style.display = "inline-block";
+                                        document.getElementById("map").style.width = "calc( 60% - 2px )";
+                                        getObjectInfoHanle = window.setInterval(getObjectInfo, config['MonitorSensitivity']*1000);
+                                    }
+                                });
+                                let popupContent = '<span style="font-weight:bolder">ID: </span>'+element['object_id'];
+                                popupContent += '<br/><span style="font-weight:bolder">LOC: </span>'+(element['location']['lat']+' ').substring(0,7)+' - '+(element['location']['lon']+' ').substring(0,7)+' - '+(element['location']['alt']+' ').substring(0,7);
+                                popupContent += '<br/><span style="font-weight:bolder">Speed: </span>'+(element['velocity']['speed']+' ').substring(0,7);
+                                popupContent += '<br/><span style="font-weight:bolder">Accel: </span>'+(element['velocity']['acceleration']+' ').substring(0,7);
+                                popupContent += '<br/><span style="font-weight:bolder">Direction: </span>'+(element['velocity']['direction']['alpha']+' ').substring(0,7)+'  '+(element['velocity']['direction']['beta']+' ').substring(0,7)+'  '+(element['velocity']['direction']['gamma']+' ').substring(0,7);;
+                                if (selectedID == element['object_id'])
+                                    points[element['object_id']].addTo(map)
+                                        .bindPopup(popupContent).openPopup();
+                                else
+                                    points[element['object_id']].addTo(map)
+                                        .bindPopup(popupContent);
+                            }
+                        });
+                    }
+                    else {
+                        window.setTimeout(renderPoints, renderIsInProgress);
+                    }
+                }
+                renderPoints();
+            }
+        }, config['MonitorSensitivity']*1000);
+
+    </script>
+</html>
