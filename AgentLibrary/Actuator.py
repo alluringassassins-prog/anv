@@ -43,7 +43,7 @@ class Actuator:
         data["direction"]["gamma"] = directionZ
 
         try:
-            response = requests.post(url, data = json.dumps(data))
+            response = requests.post(url, json=data)
             if response.ok :
                 try:
                     data = json.loads(response.content)
@@ -66,7 +66,7 @@ class Actuator:
         data["location"]["alt"] = altitude
 
         try:
-            response = requests.post(url, data = json.dumps(data))
+            response = requests.post(url, json=data)
             if response.ok :
                 try:
                     data = json.loads(response.content)
@@ -96,7 +96,7 @@ class Actuator:
         data["velocity"]["direction"]["gamma"] = directionZ
 
         try:
-            response = requests.post(url, data = json.dumps(data))
+            response = requests.post(url, json=data)
             if response.ok :
                 try:
                     data = json.loads(response.content)

@@ -104,7 +104,7 @@ def putObject():
     service = url + "put/" + ID
 
     try:
-        response = requests.post(service, data=json.dumps(body))
+        response = requests.post(service, json=body)
 
         print("\n\nService Response:")
         print("    ", end="")
@@ -141,7 +141,7 @@ def gotoLocation():
     service = url + "goto/" + ID
 
     try:
-        response = requests.post(service, data=json.dumps(body))
+        response = requests.post(service, json=body)
 
         print("\n\nService Response:")
         print("    ", end="")
@@ -158,7 +158,7 @@ def doManeuver():
     service = url + "move/" + ID
 
     try:
-        response = requests.post(service, data=json.dumps(body))
+        response = requests.post(service, json=body)
 
         print("\n\nService Response:")
         print("    ", end="")
@@ -174,7 +174,7 @@ def stopObject():
     service = url + "stop/" + ID
 
     try:
-        response = requests.post(service, data=json.dumps(body))
+        response = requests.post(service, json=body)
 
         print("\n\nService Response:")
         print("    ", end="")

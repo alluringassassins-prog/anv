@@ -183,7 +183,7 @@ def putAnObject(pID=0,pType=None,pParty=None,lat=None,lon=None,alt=None,speed=No
     if ConfigurationFactory.getInstance().get("InformEnvironment") == 1:
         service = url + "put/" + str(ID)
         try:
-            response = requests.put(service, data=json.dumps(body))
+            response = requests.put(service, json=body)
 
             if int(pID) < 1:
                 print("\n\nService Response:")
@@ -260,7 +260,7 @@ def putRandomObjects(count: int=0, ID:int=0,lat:float=0,lon:float=0,alt:float=0,
         if ConfigurationFactory.getInstance().get("InformEnvironment") == 1:
             service = url + "put/" + str(ID+i)
             try:
-                response = requests.put(service, data=json.dumps(body))
+                response = requests.put(service, json=body)
             except:
                 print("Error in connecting to environment server or bad response")
 
@@ -302,7 +302,7 @@ def sendNewTarget():
             if objects[obj_id]["party"] == 'friend' and (len(specific_bot) == 0 or specific_bot == obj_id):
                 service = url + "goto/" + obj_id
                 try:
-                    response = requests.post(service, data=json.dumps(body))
+                    response = requests.post(service, json=body)
 
                     print("\n\nService Response:")
                     print("    ", end="")
@@ -431,7 +431,7 @@ def doManoeuver():
             if objects[obj_id]["party"] == 'friend' and (len(specific_bot) == 0 or specific_bot == obj_id):
                 service = url + "move/" + obj_id
                 try:
-                    response = requests.post(service, data=json.dumps(manoeuver))
+                    response = requests.post(service, json=manoeuver)
 
                     print("\n\nService Response:")
                     print("    ", end="")
