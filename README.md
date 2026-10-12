@@ -23,6 +23,11 @@ Ctrl+C to stop all components. The services use ports 7106 and 8000 by
 default; change `config.ini` or pass `--bus-port` and `--environment-port` to
 the launcher when those ports are already in use.
 
+`config.ini` enables `InitiateProcess` by default. Loading the default
+scenario therefore starts one agent process per friendly object, including its
+DDS and HTTP service. Set it to `0` only when you want static environment
+objects without agent processes.
+
 ## Optional map
 
 `Environment/monitor.html` is the existing browser map adapter. It reads
