@@ -125,7 +125,7 @@ class DDS:
                                 data = data + bytearray(tmp)
                             if tryCounter > 10:
                                 break
-                            ++tryCounter
+                            tryCounter += 1
                         
                         # print("Subscribe callback DDS")
                         # print(data)

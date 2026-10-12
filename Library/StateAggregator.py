@@ -72,7 +72,7 @@ class StateAggregator:
                     self.status["objects"][counter]["type"] = dictData["type"]
                     self.status["objects"][counter]["party"] = dictData["party"]
                     self.status["objects"][counter]["object_id"] = dictData["object_id"]
-                ++counter
+                counter += 1
             if not found:
                 self.status["objects"].append(dictData)
 

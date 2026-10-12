@@ -88,7 +88,7 @@ class MacNetLayer:
                     tryCount = 0
                     while len(data) < dataLen[0] and tryCount < 10:
                         data = data + bytearray(thesocket.recv(dataLen[0] - len(data)))
-                        ++tryCount
+                        tryCount += 1
 
                     if len(data) == dataLen[0]:
                         packetSenderID = data[0]
@@ -105,7 +105,7 @@ class MacNetLayer:
                 else:
                     time.sleep(0.01)
             except Exception as e:
-                ++breakCount
+                breakCount += 1
                 if breakCount > 5:
                     break
             else:
@@ -138,7 +138,7 @@ class MacNetLayer:
                 tryCount = 0
                 while len(data) < radioWindowInBytes and tryCount < 10:
                     data = data + bytearray(thesocket.recv(radioWindowInBytes - len(data)))
-                    ++tryCount
+                    tryCount += 1
 
                 if len(data) == radioWindowInBytes:
                     radioOffset = 0
@@ -199,7 +199,7 @@ class MacNetLayer:
                     currentPacket = bytearray()
                     currentPacketLen = 0
             except Exception as e:
-                ++breakCount
+                breakCount += 1
                 if breakCount > 5:
                     break
             else:

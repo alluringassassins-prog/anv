@@ -1,6 +1,7 @@
 import socket
 import threading
 import time
+import argparse
 from Library.ConfigurationFactory import ConfigurationFactory
 
 clientIDS = {}
@@ -22,7 +23,7 @@ def processSocket(thesocket:socket.socket):
                 tryCount = 0
                 while len(data) < dataLen[0] and tryCount < 10:
                     data = data + bytearray(thesocket.recv(dataLen[0] - len(data)))
-                    ++tryCount
+                    tryCount += 1
 
                 # print("Bus received data")
                 # print(data)
@@ -49,7 +50,7 @@ def processSocket(thesocket:socket.socket):
                                         break
                                 if not broken:
                                     if (data[2] & 0x80) > 0 or data[2] == id:
-                                        tmpData = data
+                                        tmpData = bytearray(data)
                                         tmpData[2] = (data[2] & 0x80) | id
                                         sendBreakCount = 0
                                         while sendBreakCount < 5:
@@ -59,9 +60,9 @@ def processSocket(thesocket:socket.socket):
                                                 break
                                             except:
                                                 time.sleep(0.001)
-                                            ++sendBreakCount
+                                            sendBreakCount += 1
                                         if sendBreakCount >= 5:
-                                            clientIDS.pop(id)
+                                            clientIDS.pop(id, None)
                 else:
                     print("Received data is not matched with required length!!!")
                     print(f'{dataLen[0]} -> The desired Length')
@@ -73,9 +74,9 @@ def processSocket(thesocket:socket.socket):
             #TODO: do something like log an error
             # print(e)
             # print(f'BreakCount: {breakCount}')
-            ++breakCount
+            breakCount += 1
             if breakCount > 5:
-                clientIDS.pop(myID)
+                clientIDS.pop(myID, None)
                 break
         else:
             pass
@@ -225,17 +226,37 @@ menu = {
 }
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="TCP common-bus simulator")
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="run the bus without the interactive edge-control menu",
+    )
+    parser.add_argument("--host", help="override the configured bus host")
+    parser.add_argument("--port", type=int, help="override the configured bus port")
+    args = parser.parse_args()
+
     address = ConfigurationFactory.getInstance().get("DDS")
+    host = args.host or address["address"]
+    port = args.port or address["port"]
 
     serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    serverSocket.bind((address["address"], address["port"]))
+    serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    serverSocket.bind((host, port))
     serverSocket.listen(10)
 
     threading.Thread(target=acceptSocket, args=(serverSocket, )).start()
 
-    while True:
-        choice = showMenu(menu)
-        switcher.get(choice, lambda: "unknown")()
+    if args.headless:
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            pass
+    else:
+        while True:
+            choice = showMenu(menu)
+            switcher.get(choice, lambda: "unknown")()
 
 
 
